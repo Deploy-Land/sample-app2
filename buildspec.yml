@@ -5,7 +5,7 @@ phases:
       - echo Logging in to Amazon ECR in region ap-northeast-1...
       # 1. 도쿄 ECR에 로그인합니다. 
       - aws ecr get-login-password --region ap-northeast-1 | docker login --username AWS --password-stdin 761111057533.dkr.ecr.ap-northeast-1.amazonaws.com
-      - REPOSITORY_URI=761111057533.dkr.ecr.ap-northeast-1.amazonaws.com/deploy-land/app/sample-app
+      - REPOSITORY_URI=761111057533.dkr.ecr.ap-northeast-1.amazonaws.com/deploy-land/app
       - IMAGE_TAG=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
   build:
     commands:
