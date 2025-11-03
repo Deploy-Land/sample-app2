@@ -1,0 +1,28 @@
+version: 0.2
+phases:
+  pre_build:
+    commands:
+      - echo Logging in to Amazon ECR in region ap-northeast-1...
+      # 1. 도쿄 ECR에 로그인합니다. 
+      - aws ecr get-login-password --region ap-northeast-1 | docker login --username AWS --password-stdin 761111057533.dkr.ecr.ap-northeast-1.amazonaws.com/deploy-land/app
+      - REPOSITORY_URI=761111057533.dkr.ecr.ap-northeast-1.amazonaws.com/deploy-land/app/sample-app
+      - IMAGE_TAG=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
+  build:
+    commands:
+      - echo Running tests...
+      # 2. 테스트를 실행합니다. (실패 시 여기서 멈춤)
+      - npm install
+      - npm test 
+      - echo Building the Docker image...
+      # 3. Docker 이미지를 빌드하고 태그합니다.
+      - docker build -t $REPOSITORY_URI:latest .
+      - docker tag $REPOSITORY_URI:latest $REPOSITORY_URI:$IMAGE_TAG
+  post_build:
+    commands:
+      - echo Pushing the Docker image to ap-northeast-1 ECR...
+      # 4. 도쿄 ECR로 푸시합니다.
+      - docker push $REPOSITORY_URI:latest
+      - docker push $REPOSITORY_URI:$IMAGE_TAG
+      # 5. App Runner가 ECR 이미지를 바라보게 하므로, 별도 배포 명령은 불필요.
+      #    (CodePipeline의 Deploy 단계가 이 역할을 함)
+      - echo Build completed.
