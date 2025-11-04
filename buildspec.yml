@@ -8,7 +8,7 @@ phases:
       - echo "Logging in to Amazon ECR (Tokyo)..."
       - aws ecr get-login-password --region $ECR_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$ECR_REGION.amazonaws.com
       # 2. 리포지토리 URI (도쿄 ECR의 리포 이름과 일치해야 함)
-      - REPOSITORY_URI=$AWS_ACCOUNT_ID.dkr.ecr.$ECR_REGION.amazonaws.com/deploy-land/app
+      - REPOSITORY_URI=$AWS_ACCOUNT_ID.dkr.ecr.$ECR_REGION.amazonaws.com/deploy-land/app2
       - IMAGE_TAG=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
 
   build:
