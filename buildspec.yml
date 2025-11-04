@@ -3,37 +3,43 @@ version: 0.2
 phases:
   pre_build:
     commands:
+      # 1. 도쿄 ECR 로그인 (ap-northeast-1)
       - ECR_REGION=ap-northeast-1
       - echo "Logging in to Amazon ECR (Tokyo)..."
-      # 1. $AWS_ACCOUNT_ID 대신 실제 계정 ID (761111057533)를 하드코딩합니다.
+      # 2. $AWS_ACCOUNT_ID 대신 실제 계정 ID (761111057533) 사용
       - aws ecr get-login-password --region $ECR_REGION | docker login --username AWS --password-stdin 761111057533.dkr.ecr.$ECR_REGION.amazonaws.com
       
-      # 2. REPOSITORY_URI에도 실제 계정 ID (761111057533)를 하드코딩합니다.
+      # 3. ECR 리포지토리 URI (app2로 수정됨, 계정 ID 하드코딩)
       - REPOSITORY_URI=761111057533.dkr.ecr.$ECR_REGION.amazonaws.com/deploy-land/app2
       - IMAGE_TAG=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
-      - echo "Repository URI: $REPOSITORY_URI"
-      - echo "Image Tag: $IMAGE_TAG"
 
   build:
     commands:
+      # 4. 'npm install'을 먼저 실행
       - echo "Installing dependencies..."
       - npm install
-
+      
+      # 5. 'npm test' 실행 (package.json 수정으로 통과됨)
       - echo "Running tests..."
       - npm test
-
+      
+      # 6. Docker 이미지 빌드
       - echo "Building the Docker image..."
-      - docker build -t deploy-land/app2:latest .
-      - docker tag deploy-land/app2:latest $REPOSITORY_URI:latest
-      - docker tag deploy-land/app2:latest $REPOSITORY_URI:$IMAGE_TAG
+      - docker build -t $REPOSITORY_URI:latest .
+      - docker tag $REPOSITORY_URI:latest $REPOSITORY_URI:$IMAGE_TAG
 
   post_build:
     commands:
+      # 7. ECR로 푸시
       - echo "Pushing the Docker image to ECR..."
       - docker push $REPOSITORY_URI:latest
       - docker push $REPOSITORY_URI:$IMAGE_TAG
       - echo "Push successful."
-
+      
+      # 8. (⭐️ 핵심 ⭐️) CodeBuild가 직접 App Runner 배포를 시작
+      # 
+      # "REPLACE-ME-WITH-YOUR-APP-RUNNER-ARN" 부분을 
+      # "도쿄" 리전 App Runner 서비스에서 복사한 "실제 ARN"으로 교체해야 합니다!
+      #
       - echo "Starting AWS App Runner deployment..."
-      - aws apprunner start-deployment --service-arn $APPRUNNER_SERVICE_ARN --region $ECR_REGION
-      - echo "App Runner deployment triggered successfully!"
+      - aws apprunner start-deployment --service-arn REPLACE-ME-WITH-YOUR-APP-RUNNER-ARN --region ap-northeast-1
