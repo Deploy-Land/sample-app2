@@ -9,9 +9,11 @@ app.get('/', (req, res) => {
   res.send(`Hello from Deploy Land! 🚀\nVersion: ${VERSION}`);
 });
 
-app.listen(PORT, () => {
+// app.listen()의 결과를 server 변수에 저장합니다.
+const server = app.listen(PORT, () => {
   console.log(`Sample app listening on port ${PORT}`);
 });
 
-// 테스트를 위해 app을 export 합니다.
-module.exports = app;
+// app과 server를 "둘 다" export합니다.
+module.exports = { app, server };
+
