@@ -1,29 +1,32 @@
 version: 0.2
+
 phases:
   pre_build:
     commands:
-      - echo Logging in to Amazon ECR in region ap-northeast-1...
-      # 1. 도쿄 ECR에 로그인합니다. 
+      - echo Logging in to Amazon ECR...
       - aws ecr get-login-password --region ap-northeast-1 | docker login --username AWS --password-stdin 761111057533.dkr.ecr.ap-northeast-1.amazonaws.com
-      - REPOSITORY_URI=761111057533.dkr.ecr.ap-northeast-1.amazonaws.com/deploy-land/app
-      - IMAGE_TAG=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
+      - REPOSITORY_URI=http://761111057533.dkr.ecr.ap-northeast-1.amazonaws.com/deploy-land/app
+      - IMAGE_TAG=${CODEBUILD_RESOLVED_SOURCE_VERSION:=latest}
+      - echo Installing dependencies...
+      - npm install
+  
   build:
     commands:
       - echo Running tests...
-      # 2. 테스트를 실행합니다. (실패 시 여기서 멈춤)
-      - npm install
-      - npm test 
+      - npm test
+      - echo Build started on `date`
       - echo Building the Docker image...
-      # 3. Docker 이미지를 빌드하고 태그합니다.
       - docker build -t $REPOSITORY_URI:latest .
       - docker tag $REPOSITORY_URI:latest $REPOSITORY_URI:$IMAGE_TAG
+  
   post_build:
     commands:
-      - echo Pushing the Docker image to ap-northeast-1 ECR...
-      # 4. 도쿄 ECR로 푸시합니다.
+      - echo Build completed on `date`
+      - echo Pushing the Docker images...
       - docker push $REPOSITORY_URI:latest
       - docker push $REPOSITORY_URI:$IMAGE_TAG
-      # 5. App Runner에 배포
-      - echo Deploying to AWS App Runner...
-      - aws apprunner start-deployment --service-arn arn:aws:apprunner:ap-northeast-1:761111057533:service/sample-app-service/0c8317439f1148efa86aaf80ddb5300c --region ap-northeast-1
-      - echo Build completed.
+      - printf '[{"name":"sample-app","imageUri":"%s"}]' $REPOSITORY_URI:$IMAGE_TAG > imagedefinitions.json
+
+artifacts:
+  files:
+    - imagedefinitions.json
