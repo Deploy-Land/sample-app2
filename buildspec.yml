@@ -1,33 +1,47 @@
 version: 0.2
 
 phases:
+  install:
+    runtime-versions:
+      nodejs: 18 
+    commands:
+      - echo "Installing jq..."
+      - apt-get update && apt-get install -y jq
+
   pre_build:
     commands:
-      - echo Logging in to Amazon ECR...
-      - aws ecr get-login-password --region ap-northeast-1 | docker login --username AWS --password-stdin 761111057533.dkr.ecr.ap-northeast-1.amazonaws.com
+      - echo "Logging in to Docker Hub..."
+      - DOCKER_HUB_CREDS=$(aws secretsmanager get-secret-value --secret-id arn:aws:secretsmanager:ap-northeast-1:761111057533:secret:dockerhub_accessToken-b1LZDN --query SecretString --output text)
+      - DOCKER_HUB_USER=$(echo $DOCKER_HUB_CREDS | jq -r .username)
+      - DOCKER_HUB_PASS=$(echo $DOCKER_HUB_CREDS | jq -r .password)
+      - echo $DOCKER_HUB_PASS | docker login --username $DOCKER_HUB_USER --password-stdin
+      - echo "Docker Hub login successful."
+
+      # Amazon ECR 로그인 
+      - echo "Logging in to Amazon ECR..."
+      - aws ecr get-login-password --region ap-northeast-1| docker login --username AWS --password-stdin 761111057533.dkr.ecr.ap-northeast-1.amazonaws.com
       - REPOSITORY_URI=761111057533.dkr.ecr.ap-northeast-1.amazonaws.com/deploy-land/app
-      - IMAGE_TAG=${CODEBUILD_RESOLVED_SOURCE_VERSION:=latest}
-      - echo Installing dependencies...
-      - npm install
-  
+      - IMAGE_TAG=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
+
   build:
     commands:
-      - echo Running tests...
+      - echo "Running tests..."
+      - npm install
       - npm test
-      - echo Build started on `date`
-      - echo Building the Docker image...
+      
+      - echo "Building the Docker image..."
       - docker build -t $REPOSITORY_URI:latest .
       - docker tag $REPOSITORY_URI:latest $REPOSITORY_URI:$IMAGE_TAG
-  
+
   post_build:
     commands:
-      - echo Build completed on `date`
-      - echo Pushing the Docker images...
+      # ECR로 푸시 
+      - echo "Pushing the Docker image to ECR..."
       - docker push $REPOSITORY_URI:latest
       - docker push $REPOSITORY_URI:$IMAGE_TAG
-      - echo Writing image definitions file...
-      - printf '[{"name":"sample-app","imageUri":"%s"}]' $REPOSITORY_URI:$IMAGE_TAG > imagedefinitions.json
+      - echo "Push successful."
 
-artifacts:
-  files:
-    - imagedefinitions.json
+      # App Runner 배포
+      - echo "Deploying to AWS App Runner..."
+      - aws apprunner start-deployment --service-arn arn:aws:apprunner:ap-northeast-1:761111057533:service/sample-app-service/dd25d14909eb4309bbb7e481427005c7 --region ap-northeast-1
+      - echo "Build completed."
