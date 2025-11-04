@@ -3,11 +3,14 @@ version: 0.2
 phases:
   pre_build:
     commands:
-      # 1. 도쿄 ECR 로그인
+      # 이 라인을 삭제하세요 ⭐
+      # - echo $DOCKER_HUB_PASS | docker login --username $DOCKER_HUB_USER --password-stdin
+      
+      # ECR 로그인만 남겨두세요
       - ECR_REGION=ap-northeast-1
       - echo "Logging in to Amazon ECR (Tokyo)..."
       - aws ecr get-login-password --region $ECR_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$ECR_REGION.amazonaws.com
-# 2. ECR 리포지토리 URI (도쿄 ECR의 리포 이름과 일치)
+      
       - REPOSITORY_URI=$AWS_ACCOUNT_ID.dkr.ecr.$ECR_REGION.amazonaws.com/deploy-land/app2
       - IMAGE_TAG=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
 
