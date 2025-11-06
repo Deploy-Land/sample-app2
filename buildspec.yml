@@ -33,8 +33,7 @@ phases:
       - docker push $REPOSITORY_URI:latest
       - docker push $REPOSITORY_URI:$IMAGE_TAG
       
-      # 6. (⭐️ EB용 핵심 ⭐️)
-      # CodePipeline의 'Deploy' 단계로 전달할 "Dockerrun.aws.json" 파일 생성
+      # 6.CodePipeline의 'Deploy' 단계로 전달할 "Dockerrun.aws.json" 파일 생성
       - echo "Creating Dockerrun.aws.json for Elastic Beanstalk..."
       - |
         cat > Dockerrun.aws.json <<EOF
@@ -52,8 +51,8 @@ phases:
         }
         EOF
 
-# 7. (⭐️ EB용 핵심 ⭐️)
-# "Deploy" 단계는 소스 코드가 아니라, 오직 "Dockerrun.aws.json" 파일 1개만 필요로 함
+# 7. "Deploy" 단계는 소스 코드가 아니라, 오직 "Dockerrun.aws.json" 파일 1개만 필요로 함
 artifacts:
   files:
     - Dockerrun.aws.json
+    
